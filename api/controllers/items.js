@@ -33,6 +33,8 @@ exports.items_create_item = async (req, res, next) => {
         const item = new Item({
             _id: itemId,
             name: req.body.name,
+            category: req.body.category,
+            quantity: req.body.quantity,
             description: req.body.description,
             loggedBy: req.body.loggedBy,
         });

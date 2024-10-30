@@ -26,6 +26,25 @@ exports.items_get_item = (req, res, next) => {
         })
 };
 
+exports.items_get_itemById = (req, res, next) => {
+
+    Item.find({ _id: req.params.id })
+        .exec()
+        .then(doc => {
+            const response = {
+                count: doc.length,
+                items: doc
+            }
+            res.status(200).json(response);
+        })
+        .catch(err => {
+            res.status(500).json({
+                message: "Error in retrieving items",
+                error: err
+            })
+        })
+};
+
 exports.items_create_item = async (req, res, next) => {
     console.log('Request Body:', req.body);
     try {

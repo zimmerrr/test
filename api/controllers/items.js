@@ -3,6 +3,7 @@ const path = require('path');
 const { error } = require('console');
 const QRCode = require('qrcode');
 
+
 const Item = require('../models/item');
 const item = require('../models/item');
 
@@ -26,6 +27,7 @@ exports.items_get_item = (req, res, next) => {
 };
 
 exports.items_create_item = async (req, res, next) => {
+    console.log('Request Body:', req.body);
     try {
         const itemId = new mongoose.Types.ObjectId();
 

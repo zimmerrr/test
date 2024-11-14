@@ -26,16 +26,24 @@ exports.items_get_item = (req, res, next) => {
         })
 };
 
+exports.items_search_item = async (req, res, next) => {
+    const query = req.query.query;
+    const items = await Item.find({
+        $or: [
+            { _id: query },        // Search by _id
+            { name: { $regex: query, $options: 'i' } },  // Search by name (case-insensitive)
+            { loggedBy: { $regex: query, $options: 'i' } }  // Search by loggedBy (case-insensitive)
+        ]
+    });
+    res.status(200).json(items);
+}
+
 exports.items_get_itemById = (req, res, next) => {
 
     Item.find({ _id: req.params.id })
         .exec()
         .then(doc => {
-            const response = {
-                count: doc.length,
-                items: doc
-            }
-            res.status(200).json(response);
+            res.status(200).json(doc);
         })
         .catch(err => {
             res.status(500).json({

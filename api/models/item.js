@@ -5,6 +5,7 @@ const itemSchema = mongoose.Schema({
     name: { type: String, required: true },
     category: { type: String, required: true },
     quantity: { type: Number, required: true, default: 1 },
+    location: { type: String, required: true },
     description: { type: String, required: true },
     loggedBy: { type: String, required: true, default: "unknown" },
     createdAt: { type: Date, default: Date.now },

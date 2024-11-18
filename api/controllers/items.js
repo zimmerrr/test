@@ -1,12 +1,45 @@
 const mongoose = require('mongoose');
 const path = require('path');
-const { error } = require('console');
 const QRCode = require('qrcode');
 
-
 const Item = require('../models/item');
-const item = require('../models/item');
+const Log = require('../models/log');
 
+
+const createLog = async (action, itemId, performedBy, description) => {
+    const log = new Log({
+        _id: new mongoose.Types.ObjectId(),
+        action,
+        itemId,
+        performedBy,
+        description,
+    });
+
+    try {
+        await log.save();
+        console.log(`Log created: ${action} for item ${itemId}`);
+    } catch (err) {
+        console.error('Error creating log entry:', err);
+    }
+};
+
+exports.logs_get_log = (req, res, next) => {
+    Log.find()
+        .exec()
+        .then(doc => {
+            const response = {
+                count: doc.length,
+                logs: doc
+            }
+            res.status(200).json(response);
+        })
+        .catch(err => {
+            res.status(500).json({
+                message: "Error in retrieving logs",
+                error: err
+            })
+        })
+};
 
 exports.items_get_item = (req, res, next) => {
     Item.find()
@@ -25,18 +58,6 @@ exports.items_get_item = (req, res, next) => {
             })
         })
 };
-
-exports.items_search_item = async (req, res, next) => {
-    const query = req.query.query;
-    const items = await Item.find({
-        $or: [
-            { _id: query },        // Search by _id
-            { name: { $regex: query, $options: 'i' } },  // Search by name (case-insensitive)
-            { loggedBy: { $regex: query, $options: 'i' } }  // Search by loggedBy (case-insensitive)
-        ]
-    });
-    res.status(200).json(items);
-}
 
 exports.items_get_itemById = (req, res, next) => {
 
@@ -64,10 +85,12 @@ exports.items_create_item = async (req, res, next) => {
             name: req.body.name,
             category: req.body.category,
             quantity: req.body.quantity,
+            location: req.body.location,
             description: req.body.description,
             loggedBy: req.body.loggedBy,
         });
         const result = await item.save();
+        await createLog('create', itemId, req.body.loggedBy, req.body.description || 'Unknown');
         console.log('Item created successfully:', result);
 
         // Step 2: Attempt to generate the QR code file
@@ -141,12 +164,13 @@ exports.items_archive_item = async (req, res, next) => {
         });
     }
     try {
-        const archiveItem = await item.findByIdAndUpdate(id, { isArchived }, { new: true });
+        const archiveItem = await Item.findByIdAndUpdate(id, { isArchived }, { new: true });
         if (!archiveItem) {
             return res.status(404).json({
                 message: 'Item not found'
             });
         }
+        await createLog('archive', id, req.body.loggedBy, "archived" || 'Unknown');
         res.status(200).json({
             message: 'Item archived successfully',
             item: archiveItem
@@ -158,3 +182,49 @@ exports.items_archive_item = async (req, res, next) => {
         });
     }
 }
+
+exports.items_update_quantity = async (req, res, next) => {
+    const id = req.params.id;
+    const { quantityChange, loggedBy } = req.body;
+
+    // Check if quantityChange is a valid number
+    if (typeof quantityChange !== 'number' || !Number.isInteger(quantityChange)) {
+        return res.status(400).json({
+            message: 'Invalid value for quantityChange. It must be an integer.'
+        });
+    }
+
+    try {
+        // Find the item by ID
+        const item = await Item.findById(id);
+        if (!item) {
+            return res.status(404).json({
+                message: 'Item not found'
+            });
+        }
+
+        // Update the quantity
+        item.quantity += quantityChange;
+
+        // Ensure that the quantity does not go below zero
+        if (item.quantity < 0) {
+            return res.status(400).json({
+                message: 'Insufficient quantity. The item quantity cannot be negative.'
+            });
+        }
+
+        await createLog('update_quantity', id, loggedBy, req.body.description || 'Unknown');
+        const updatedItem = await item.save();
+
+        res.status(200).json({
+            message: 'Item quantity updated successfully',
+            item: updatedItem
+        });
+    } catch (err) {
+        console.error('Error updating item quantity:', err);
+        res.status(500).json({
+            message: 'Error updating item quantity',
+            error: err
+        });
+    }
+};

@@ -10,6 +10,7 @@ const { createServer } = require('@vercel/node');
 
 // router link
 const itemRoutes = require('./api/routes/items');
+const userRoutes = require('./api/routes/users');
 
 mongoose.connect('mongodb+srv://inventory:management@cluster0.pfrrn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
 mongoose.Promise = global.Promise;
@@ -33,7 +34,8 @@ app.use((req, res, next) => {
 });
 
 // routes
-app.use('/items', itemRoutes)
+app.use('/items', itemRoutes);
+app.use('/users', userRoutes);
 
 
 
@@ -51,5 +53,6 @@ app.use((error, req, res, next) => {
         }
     });
 })
+
 
 module.exports = app;

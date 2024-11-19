@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const logSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
+    name: { type: String, required: true },
     action: { type: String, required: true }, // 'update_quantity', 'create', 'update', 'archive', or 'delete'
     itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
     timestamp: { type: Date, default: Date.now },

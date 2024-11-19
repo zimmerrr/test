@@ -181,13 +181,12 @@ exports.items_archive_item = async (req, res, next) => {
             error: err
         });
     }
-}
+};
 
 exports.items_update_quantity = async (req, res, next) => {
     const id = req.params.id;
     const { quantityChange, loggedBy } = req.body;
 
-    // Check if quantityChange is a valid number
     if (typeof quantityChange !== 'number' || !Number.isInteger(quantityChange)) {
         return res.status(400).json({
             message: 'Invalid value for quantityChange. It must be an integer.'
@@ -224,6 +223,42 @@ exports.items_update_quantity = async (req, res, next) => {
         console.error('Error updating item quantity:', err);
         res.status(500).json({
             message: 'Error updating item quantity',
+            error: err
+        });
+    }
+};
+
+exports.items_update_item = async (req, res, next) => {
+    const id = req.params.id;
+    const { name, category, quantity, location, description, loggedBy } = req.body;
+
+    try {
+        // Find the item by ID and update
+        const updatedItem = await Item.findByIdAndUpdate(
+            id,
+            {
+                name,
+                category,
+                quantity,
+                location,
+                description,
+                loggedBy: loggedBy || "unknown" // Default loggedBy if not provided
+            },
+            { new: true } // This ensures the updated item is returned
+        );
+
+        if (!updatedItem) {
+            return res.status(404).json({ message: 'Item not found' });
+        }
+        await createLog('update Item', id, loggedBy, description || 'Unknown');
+        res.status(200).json({
+            message: 'Item updated successfully',
+            item: updatedItem
+        });
+    } catch (err) {
+        console.error('Error updating item:', err);
+        res.status(500).json({
+            message: 'Error updating item',
             error: err
         });
     }

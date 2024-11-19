@@ -2,11 +2,16 @@ const mongoose = require('mongoose');
 
 const userSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
-    name: { type: String, required: true },
-    employee_id: { type: String, required: true },
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    middleName: { type: String },
+    employeeId: { type: String, required: true },
     division: { type: String, required: true },
     username: { type: String, required: true },
-    password: { type: String, required: true }
+    password: { type: String, required: true },
+    role: { type: String, required: true, default: 'employee' },
+    //archive checker
+    isArchived: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model('User', userSchema);

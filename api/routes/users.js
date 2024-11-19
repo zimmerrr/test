@@ -8,7 +8,7 @@ const UsersController = require('../controllers/users');
 //ROUTERS
 
 router.get('/', UsersController.users_get_user);
-router.get('/myProfile', checkAuth, UsersController.users_profile_user);
+router.get('/myProfile', UsersController.users_profile_user);
 router.get('/:id', UsersController.users_get_userById);
 router.post('/tokenValidation', UsersController.users_token_validation);
 router.post('/signUp', UsersController.users_create_user);

@@ -24,21 +24,40 @@ exports.users_get_user = (req, res, next) => {
 
 exports.users_profile_user = (req, res, next) => {
 
-    User.find({ _id: req.userData.userId })
-        .exec()
-        .then(user => {
-            res.status(200).json(user);
-        })
-        .catch(err => {
-            res.status(500).json({
-                message: "Error in retrieving user information",
-                error: err
-            });
-        })
+    try {
+        const AUTH_TOKEN = req.body.token;
+        if (!AUTH_TOKEN) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const token = AUTH_TOKEN;
+        console.log("Received token:", token);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("Decoded token:", decoded);
+
+        User.findOne({ _id: decoded.userId })
+            .exec()
+            .then(user => {
+                res.status(200).json(user);
+            })
+            .catch(err => {
+                res.status(500).json({
+                    message: "Error in retrieving user information",
+                    error: err
+                });
+            })
+    } catch (error) {
+        return res.status(500).json({
+            message: "Error in validating token",
+            error: error
+        });
+    }
+
+
 }
 
 exports.users_get_userById = (req, res, next) => {
-    User.find({ _id: req.params.id })
+    User.findOne({ _id: req.params.id })
         .exec()
         .then(user => {
             res.status(200).json(user);

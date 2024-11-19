@@ -61,7 +61,7 @@ exports.items_get_item = (req, res, next) => {
 
 exports.items_get_itemById = (req, res, next) => {
 
-    Item.find({ _id: req.params.id })
+    Item.findOne({ _id: req.params.id })
         .exec()
         .then(doc => {
             res.status(200).json(doc);

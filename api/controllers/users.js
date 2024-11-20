@@ -22,6 +22,20 @@ exports.users_get_user = (req, res, next) => {
         })
 };
 
+exports.users_get_userById = (req, res, next) => {
+    User.findOne({ _id: req.params.id })
+        .exec()
+        .then(user => {
+            res.status(200).json(user);
+        })
+        .catch(err => {
+            res.status(500).json({
+                message: "Error in retrieving user by id",
+                error: err
+            })
+        })
+};
+
 exports.users_profile_user = (req, res, next) => {
 
     try {
@@ -31,9 +45,7 @@ exports.users_profile_user = (req, res, next) => {
         }
 
         const token = AUTH_TOKEN;
-        console.log("Received token:", token);
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log("Decoded token:", decoded);
 
         User.findOne({ _id: decoded.userId })
             .exec()
@@ -54,20 +66,22 @@ exports.users_profile_user = (req, res, next) => {
     }
 
 
-}
+};
 
-exports.users_get_userById = (req, res, next) => {
-    User.findOne({ _id: req.params.id })
-        .exec()
-        .then(user => {
-            res.status(200).json(user);
-        })
-        .catch(err => {
-            res.status(500).json({
-                message: "Error in retrieving user by id",
-                error: err
-            })
-        })
+exports.users_token_validation = (req, res, next) => {
+    try {
+        const AUTH_TOKEN = req.body.token;
+        if (!AUTH_TOKEN) {
+            return res.status(401).json({ isValid: false });
+        }
+
+        const token = AUTH_TOKEN;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        return res.json({ isValid: true });
+    } catch (error) {
+        return res.status(500).json({ isValid: false });
+    }
 };
 
 exports.users_create_user = (req, res, next) => {
@@ -150,30 +164,11 @@ exports.users_login_user = (req, res, next) => {
             })
         })
         .catch(err => {
-            console.log(err),
-                res.status(500).json({
-                    error: err
-                })
+            res.status(500).json({
+                error: err
+            })
         })
 
-};
-
-exports.users_token_validation = (req, res, next) => {
-    try {
-        const AUTH_TOKEN = req.body.token;
-        if (!AUTH_TOKEN) {
-            return res.status(401).json({ isValid: false });
-        }
-
-        const token = AUTH_TOKEN;
-        console.log("Received token:", token);
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log("Decoded token:", decoded);
-
-        return res.json({ isValid: true });
-    } catch (error) {
-        return res.status(500).json({ isValid: false });
-    }
 };
 
 exports.users_archive_user = async (req, res, next) => {

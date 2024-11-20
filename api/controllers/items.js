@@ -91,7 +91,6 @@ exports.items_create_item = async (req, res, next) => {
         });
         const result = await item.save();
         await createLog('create', itemId, req.body.loggedBy, req.body.description || 'Unknown');
-        console.log('Item created successfully:', result);
 
         // Step 2: Attempt to generate the QR code file
         const qrCodeFilePath = path.join(__dirname, '../../uploads', `qrcode-${itemId}.png`);

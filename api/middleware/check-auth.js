@@ -8,15 +8,11 @@ module.exports = (req, res, next) => {
         }
 
         const token = authHeader.split(' ')[1];
-        console.log("Received token:", token);
-
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log("Decoded token:", decoded);
 
         req.userData = decoded;
         next();
     } catch (error) {
-        console.error("JWT Error:", error);
         let message = 'Authentication failed';
         if (error.name === 'TokenExpiredError') {
             message = 'Token has expired';

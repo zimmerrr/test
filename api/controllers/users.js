@@ -50,10 +50,10 @@ exports.users_profile_user = (req, res, next) => {
         User.findOne({ _id: decoded.userId })
             .exec()
             .then(user => {
-                res.status(200).json(user);
+                return res.status(200).json(user);
             })
             .catch(err => {
-                res.status(500).json({
+                return res.status(500).json({
                     message: "Error in retrieving user information",
                     error: err
                 });
@@ -171,30 +171,24 @@ exports.users_login_user = (req, res, next) => {
 
 };
 
-exports.users_archive_user = async (req, res, next) => {
+exports.users_update_user = async (req, res, next) => {
     const id = req.params.id;
-    const { isArchived } = req.body;
-    if (typeof isArchived !== 'boolean') {
-        return res.status(400).json({
-            message: 'Invalid value for isArchived'
-        });
-    }
-    try {
-        const archiveUser = await User.findByIdAndUpdate(id, { isArchived }, { new: true });
-        if (!archiveUser) {
-            return res.status(404).json({
-                message: 'User not found'
-            });
-        }
-        return res.status(200).json({
-            message: 'User archived successfully',
-            user: archiveUser
-        });
-    } catch (error) {
-        return res.status(500).json({
-            message: 'Error in archiving user',
-            error: error
-        });
-    }
+    const updateFields = req.body;
+    performUpdate(id, updateFields, res);
 };
 
+const performUpdate = (id, updateFields, res) => {
+    User.findByIdAndUpdate(id, updateFields, { new: true })
+        .then((updated) => {
+            if (!updated) {
+                return res.status(404).json({ message: "id not found" });
+            }
+            return res.status(200).json(updated);
+        })
+        .catch((err) => {
+            return res.status(500).json({
+                message: "Error in updating user",
+                error: err
+            });
+        })
+};

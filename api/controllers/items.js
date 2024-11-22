@@ -44,50 +44,52 @@ const performUpdate = (id, updateFields, res) => {
         })
 };
 
-exports.items_search_item = async (req, res, next) => {
+exports.items_search_item = async (req, res) => {
     try {
-        const { query, filter } = req.query;
+        const { active, query, filter } = req.query;
+
+        const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
         let searchCriteria = {};
-
-        if (!query && !filter) {
-            return Item.find()
-                .exec()
-                .then((doc) => {
-                    return res.status(200).json(doc);
-                })
-                .catch((err) => {
-                    return res.status(500).json({
-                        message: "Error in retrieving items",
-                        error: err
-                    });
-                });
-        }
-
         const queryConditions = [];
 
         if (query) {
+            const escapedQuery = escapeRegex(query);
+            const orConditions = [];
+
+            if (mongoose.Types.ObjectId.isValid(query)) {
+                orConditions.push({ _id: query });
+            }
+
+            orConditions.push(
+                { controlNumber: { $regex: escapedQuery, $options: 'i' } },
+                { name: { $regex: escapedQuery, $options: 'i' } },
+                { category: { $regex: escapedQuery, $options: 'i' } },
+                { location: { $regex: escapedQuery, $options: 'i' } },
+                { description: { $regex: escapedQuery, $options: 'i' } },
+                { loggedBy: { $regex: escapedQuery, $options: 'i' } }
+            );
+
+            queryConditions.push({ $or: orConditions });
+        }
+
+        if (filter) {
+            const escapedFilter = escapeRegex(filter);
             queryConditions.push({
                 $or: [
-                    { controlNumber: { $regex: query, $options: 'i' } },
-                    { name: { $regex: query, $options: 'i' } },
-                    { category: { $regex: query, $options: 'i' } },
-                    { location: { $regex: query, $options: 'i' } },
-                    { description: { $regex: query, $options: 'i' } },
-                    { loggedBy: { $regex: query, $options: 'i' } },
+                    { controlNumber: { $regex: escapedFilter, $options: 'i' } },
+                    { name: { $regex: escapedFilter, $options: 'i' } },
+                    { category: { $regex: escapedFilter, $options: 'i' } },
+                    { location: { $regex: escapedFilter, $options: 'i' } },
+                    { description: { $regex: escapedFilter, $options: 'i' } },
+                    { loggedBy: { $regex: escapedFilter, $options: 'i' } },
                 ],
             });
         }
-        if (filter) {
-            queryConditions.push({
-                $or: [
-                    { controlNumber: { $regex: filter, $options: 'i' } },
-                    { name: { $regex: filter, $options: 'i' } },
-                    { category: { $regex: filter, $options: 'i' } },
-                    { location: { $regex: filter, $options: 'i' } },
-                    { description: { $regex: filter, $options: 'i' } },
-                    { loggedBy: { $regex: filter, $options: 'i' } },
-                ],
-            });
+
+        if (active) {
+            const isActive = active === 'true';
+            queryConditions.push({ active: isActive });
         }
 
         if (queryConditions.length > 0) {
@@ -96,14 +98,12 @@ exports.items_search_item = async (req, res, next) => {
 
         const items = await Item.find(searchCriteria);
 
-        if (items.length === 0) {
-            return res.status(200).json(items);
-        }
-
         return res.status(200).json(items);
-    }
-    catch (err) {
-        return res.status(500).json(err);
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error while searching items',
+            error: err,
+        });
     }
 };
 
@@ -137,25 +137,10 @@ exports.items_create_item = async (req, res, next) => {
             description: req.body.description,
             loggedBy: req.body.loggedBy,
         });
-        const result = await item.save();
         await createLog('create', req.body.name, req.body.controlNumber, req.body.loggedBy, req.body.description, res || 'Unknown');
 
-        // Step 2: Attempt to generate the QR code file
-        const qrCodeFilePath = path.join(__dirname, '../../uploads', `qrcode-${itemId}.png`);
-        try {
-            await QRCode.toFile(qrCodeFilePath, itemId.toString());
-        } catch (qrError) {
-            return res.status(500).json({
-                message: "Error generating QR code",
-                error: qrError
-            });
-        }
-
-        // Step 3: Attempt to update the item with the QR code path
-        item.qrCode = qrCodeFilePath;
         const updatedItem = await item.save();
 
-        // Step 4: Send a successful response
         return res.status(201).json({
             message: "Item successfully registered",
             createdItem: updatedItem

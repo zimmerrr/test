@@ -10,9 +10,6 @@ const itemSchema = mongoose.Schema({
     loggedBy: { type: String, required: true, default: "unknown" },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }, //Last updated date
-
-    qrCode: { type: String },
-
     //archive checker
     active: { type: Boolean, default: true },
 });

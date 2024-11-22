@@ -4,36 +4,72 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
 
-exports.users_get_user = (req, res, next) => {
-    User.find()
-        .exec()
-        .then(user => {
-            const response = {
-                count: user.length,
-                users: user
-            }
-            res.status(200).json(response);
-        })
-        .catch(err => {
-            res.status(500).json({
-                message: "Error in retrieving users",
-                error: err
-            });
-        })
-};
+exports.users_get_user = async (req, res, next) => {
+    try {
+        const { active, query, filter } = req.query;
 
-exports.users_get_userById = (req, res, next) => {
-    User.findOne({ _id: req.params.id })
-        .exec()
-        .then(user => {
-            res.status(200).json(user);
+        const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        let searchCriteria = {};
+        const queryConditions = [];
+
+        if (query) {
+            const escapedQuery = escapeRegex(query);
+            const orConditions = [];
+            if (mongoose.Types.ObjectId.isValid(query)) {
+                orConditions.push({ _id: query });
+            }
+
+            orConditions.push(
+                { controlNumber: { $regex: escapedQuery, $options: 'i' } },
+                { firstName: { $regex: escapedQuery, $options: 'i' } },
+                { lastName: { $regex: escapedQuery, $options: 'i' } },
+                { middleName: { $regex: escapedQuery, $options: 'i' } },
+                { employeeId: { $regex: escapedQuery, $options: 'i' } },
+                { division: { $regex: escapedQuery, $options: 'i' } },
+                { username: { $regex: escapedQuery, $options: 'i' } },
+            );
+
+            queryConditions.push({ $or: orConditions });
+        }
+
+        if (filter) {
+            const escapedFilter = escapeRegex(filter);
+            queryConditions.push({
+                $or: [
+                    { controlNumber: { $regex: escapedFilter, $options: 'i' } },
+                    { firstName: { $regex: escapedFilter, $options: 'i' } },
+                    { lastName: { $regex: escapedFilter, $options: 'i' } },
+                    { middleName: { $regex: escapedFilter, $options: 'i' } },
+                    { employeeId: { $regex: escapedFilter, $options: 'i' } },
+                    { division: { $regex: escapedFilter, $options: 'i' } },
+                    { username: { $regex: escapedFilter, $options: 'i' } },
+                    { role: { $regex: escapedFilter, $options: 'i' } },
+                ],
+            });
+        }
+
+        if (active) {
+            const isActive = active === 'true';
+            queryConditions.push({ active: isActive });
+        }
+
+        if (queryConditions.length > 0) {
+            searchCriteria = { $and: queryConditions };
+        }
+
+        const users = await User.find(searchCriteria);
+
+        return res.status(200).json(users);
+
+
+    }
+    catch (error) {
+        return res.status(500).json({
+            message: "Error in retrieving users",
+            error: error
         })
-        .catch(err => {
-            res.status(500).json({
-                message: "Error in retrieving user by id",
-                error: err
-            })
-        })
+    }
 };
 
 exports.users_profile_user = (req, res, next) => {
@@ -174,7 +210,24 @@ exports.users_login_user = (req, res, next) => {
 exports.users_update_user = async (req, res, next) => {
     const id = req.params.id;
     const updateFields = req.body;
-    performUpdate(id, updateFields, res);
+    if (updateFields.password) {
+        const bcrypt = require('bcrypt');
+        const saltRounds = 10;
+
+        bcrypt.hash(updateFields.password, saltRounds, (err, hash) => {
+            if (err) {
+                return res.status(500).json({
+                    message: "Error in hashing password",
+                    error: err
+                });
+            }
+            updateFields.password = hash;
+            performUpdate(id, updateFields, res);
+        });
+    }
+    else {
+        performUpdate(id, updateFields, res);
+    }
 };
 
 const performUpdate = (id, updateFields, res) => {

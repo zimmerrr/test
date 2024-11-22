@@ -8,9 +8,9 @@ const UsersController = require('../controllers/users');
 //ROUTERS
 
 router.get('/', UsersController.users_get_user);
-router.post('/myProfile', checkAuth, UsersController.users_profile_user);
+router.get('/myProfile', checkAuth, UsersController.users_profile_user);
 router.post('/tokenValidation', UsersController.users_token_validation);
-router.post('/signUp', UsersController.users_create_user);
+router.post('/', UsersController.users_create_user);
 router.post('/logIn', UsersController.users_login_user);
 router.put('/update/:id', checkAuth, UsersController.users_update_user);
 

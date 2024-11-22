@@ -72,7 +72,7 @@ exports.users_get_user = async (req, res, next) => {
     }
 };
 
-exports.users_profile_user = (req, res, next) => {
+exports.users_profile_userB = (req, res, next) => {
 
     try {
         const AUTH_TOKEN = req.body.token;
@@ -104,6 +104,19 @@ exports.users_profile_user = (req, res, next) => {
 
 };
 
+exports.users_profile_user = (req, res, next) => {
+    User.findOne({ _id: req.userData.userId })
+        .exec()
+        .then(user => {
+            return res.status(200).json(user);
+        })
+        .catch(err => {
+            return res.status(500).json({
+                error: err
+            });
+        });
+};
+
 exports.users_token_validation = (req, res, next) => {
     try {
         const AUTH_TOKEN = req.body.token;
@@ -122,11 +135,11 @@ exports.users_token_validation = (req, res, next) => {
 
 exports.users_create_user = (req, res, next) => {
 
-    User.find({ $or: [{ username: req.body.username }, { employeeId: req.body.employeeId }] })
+    User.find({ username: req.body.username })
         .then(user => {
             if (user.length >= 1) {
-                return res.status(409).json({
-                    message: "Username or Employee Id already exists"
+                return res.status(200).json({
+                    message: "Employee Id already exists"
                 });
             }
             else {
@@ -145,17 +158,16 @@ exports.users_create_user = (req, res, next) => {
                             firstName: req.body.firstName,
                             lastName: req.body.lastName,
                             middleName: req.body.middleName,
-                            employeeId: req.body.employeeId,
                             division: req.body.division,
                             username: req.body.username,
                             password: hash,
                         })
                         user.save()
                             .then(doc => {
-                                res.status(201).json({ doc });
+                                return res.status(201).json({ doc });
                             })
                             .catch(err => {
-                                res.status(500).json({
+                                return res.status(500).json({
                                     message: "Error in creating user",
                                     error: err
                                 });
@@ -163,6 +175,12 @@ exports.users_create_user = (req, res, next) => {
                     }
                 });
             }
+        })
+        .catch(err => {
+            return res.status(500).json({
+                message: "Error in finding user",
+                error: err
+            })
         })
 };
 
@@ -188,7 +206,7 @@ exports.users_login_user = (req, res, next) => {
                     },
                         process.env.JWT_SECRET, //private key
                         {
-                            expiresIn: "2h" //key expires in 1 hour
+                            expiresIn: "8h"
                         }
                     )
 
@@ -210,24 +228,44 @@ exports.users_login_user = (req, res, next) => {
 exports.users_update_user = async (req, res, next) => {
     const id = req.params.id;
     const updateFields = req.body;
-    if (updateFields.password) {
-        const bcrypt = require('bcrypt');
-        const saltRounds = 10;
-
-        bcrypt.hash(updateFields.password, saltRounds, (err, hash) => {
-            if (err) {
-                return res.status(500).json({
-                    message: "Error in hashing password",
-                    error: err
-                });
+    let userExist = false;
+    await User.find({ username: updateFields.username })
+        .then(user => {
+            if (user.length >= 1) {
+                userExist = true;
             }
-            updateFields.password = hash;
-            performUpdate(id, updateFields, res);
+        })
+
+    if (userExist) {
+        return res.status(200).json({
+            message: "Employee Id already exists"
         });
     }
+
     else {
-        performUpdate(id, updateFields, res);
+
+        if (updateFields.password) {
+            const bcrypt = require('bcrypt');
+            const saltRounds = 10;
+
+            bcrypt.hash(updateFields.password, saltRounds, (err, hash) => {
+                if (err) {
+                    return res.status(500).json({
+                        message: "Error in hashing password",
+                        error: err
+                    });
+                }
+                updateFields.password = hash;
+                performUpdate(id, updateFields, res);
+            });
+        }
+        else {
+            performUpdate(id, updateFields, res);
+        }
+
     }
+
+
 };
 
 const performUpdate = (id, updateFields, res) => {

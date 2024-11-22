@@ -1,10 +1,9 @@
-// webpack.config.js
 const path = require("path");
 const NodePolyFillPlugin = require("node-polyfill-webpack-plugin");
 
 module.exports = {
   target: "node", // Target node environment
-  entry: "./app.js",
+  entry: "./src/server.js", // Entry point for your application
   output: {
     filename: "bundle.js", // Output file
     path: path.resolve(__dirname, "dist"), // Output directory
@@ -30,5 +29,8 @@ module.exports = {
     alias: {
       "@mapbox/node-pre-gyp": false, // Exclude this package from the bundle
     },
+  },
+  externals: {
+    "mongodb-client-encryption": "commonjs mongodb-client-encryption", // Prevent Webpack from bundling this module
   },
 };

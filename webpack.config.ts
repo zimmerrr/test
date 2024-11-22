@@ -4,7 +4,7 @@ const NodePolyFillPlugin = require("node-polyfill-webpack-plugin");
 
 module.exports = {
   target: "node", // Target node environment
-  entry: "./src/server.js", // Entry point for your application
+  entry: "./app.js",
   output: {
     filename: "bundle.js", // Output file
     path: path.resolve(__dirname, "dist"), // Output directory

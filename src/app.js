@@ -3,56 +3,62 @@ const app = express();
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { default: mongoose, mongo } = require('mongoose');
+const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const { createServer } = require('@vercel/node');
 
+// Load environment variables
+dotenv.config();
 
-// router link
+// Routes
 const itemRoutes = require('./api/routes/items');
 const userRoutes = require('./api/routes/users');
 
-mongoose.connect('mongodb+srv://inventory:management@cluster0.pfrrn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
+// MongoDB connection
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 mongoose.Promise = global.Promise;
 
+// Middleware
 app.use(morgan('dev'));
-app.use('/uploads', express.static('uploads')); // make the uploads folder accessible
-app.use(bodyParser.json()); // For parsing application/json
-app.use(bodyParser.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
+app.use('/uploads', express.static('uploads'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
 
+// CORS Headers
 app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-    );
-    if (req.method === 'OPTIONS') {
-        res.header('Access-Control-Allow-Methods', 'PUT, POST, PATCH, DELETE, GET');
-        return res.status(200).json({});
-    }
-    next();
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+  );
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', 'PUT, POST, PATCH, DELETE, GET');
+    return res.status(200).json({});
+  }
+  next();
 });
 
-// routes
+// Routes
 app.use('/items', itemRoutes);
 app.use('/users', userRoutes);
 
-
-
+// Error handling
 app.use((req, res, next) => {
-    const error = new Error('Not Found');
-    error.status = 404;
-    next(error);
-})
+  const error = new Error('Not Found');
+  error.status = 404;
+  next(error);
+});
 
 app.use((error, req, res, next) => {
-    res.status(error.status || 500);
-    res.json({
-        error: {
-            message: error.message
-        }
-    });
-})
+  res.status(error.status || 500).json({
+    error: {
+      message: error.message,
+    },
+  });
+});
 
-
+// Export app for Vercel
 module.exports = app;
